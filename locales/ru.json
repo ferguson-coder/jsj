@@ -1,0 +1,56 @@
+{
+  "common": {
+    "error": "Произошла ошибка: {error}",
+    "access_denied": "🔒 Доступ запрещён",
+    "usage": "❗️ Использование:",
+    "ok": "✅ Готово",
+    "no_description": "Нет описания"
+  },
+  "cmd": {
+    "restart": {
+      "starting": "⌛️ Перезапуск...",
+      "done": "👻 <b>Forelka Started</b>\n<blockquote>✅ <b>Время перезапуска:</b> <code>{seconds:.2f}с</code></blockquote>"
+    },
+    "update": {
+      "checking": "⌛️ Обновление...",
+      "up_to_date": "❗️ Уже последняя версия",
+      "error": "❌ Ошибка: <code>{error}</code>"
+    },
+    "help": {
+      "title": "📚 Forelka Modules",
+      "page": "Страница {page} из {total}",
+      "system_header": "Системные:",
+      "external_header": "Внешние:",
+      "no_system": "Нет системных модулей",
+      "no_external": "Нет внешних модулей",
+      "inline_not_configured": "❌ Инлайн-бот не настроен.",
+      "access_restricted": "Эта функция доступна только владельцам юзербота."
+    },
+    "owner": {
+      "add_usage": "❗️ Использование:\n\n<code>.addowner [user_id]</code> — добавить по ID\n<code>.addowner</code> (ответом на сообщение) — добавить пользователя",
+      "invalid_id": "❌ Неверный ID",
+      "already_owner": "❗️ Пользователь уже в списке владельцев",
+      "added": "✅ Владелец добавлен: <b>{name}</b> [<code>{id}</code>]"
+    },
+    "tsec": {
+      "usage_reply": "❗️ <b>Использование:</b>\n\n<code>.tsec [сек] [команда]</code> (ответом на сообщение)\nПример: <code>.tsec 60 calc</code>",
+      "usage_args": "❗️ <b>Использование:</b>\n\n<code>.tsec [сек] [@user|id] [команда]</code>\nПример: <code>.tsec 60 @username term</code>",
+      "bad_seconds": "❌ Неверное количество секунд",
+      "user_not_found": "❌ Пользователь не найден",
+      "self_forbidden": "❌ Нельзя выдать доступ самому себе",
+      "unknown_command": "❌ Команда <code>{command}</code> не найдена",
+      "granted": "✅ <b>Временный доступ выдан</b>\n\n<b>Пользователь:</b> {name} [<code>{id}</code>]\n<b>Команда:</b> <code>.{command}</code>\n<b>Время:</b> {seconds} сек."
+    },
+    "module": {
+      "loaded": "✅ <b>Модуль</b> <code>{name}</code> <b>загружен</b>",
+      "description": "⚙️ <b>Описание:</b> {description}",
+      "author": "👤 <b>Разработчик:</b> <code>{author}</code>",
+      "no_commands": "Нет команд",
+      "no_repos": "❗️ Нет добавленных репозиториев",
+      "repos_list": "👻 <b>Список репозиториев:</b>\n{list}",
+      "repo_added": "✅ <b>Репозиторий добавлен:</b> <code>{url}</code>",
+      "repo_exists": "❌ Репозиторий уже добавлен.",
+      "bad_url": "❗️ URL должен начинаться с http:// или https://"
+    }
+  }
+}

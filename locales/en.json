@@ -1,0 +1,56 @@
+{
+  "common": {
+    "error": "An error occurred: {error}",
+    "access_denied": "🔒 Access denied",
+    "usage": "❗️ Usage:",
+    "ok": "✅ Done",
+    "no_description": "No description"
+  },
+  "cmd": {
+    "restart": {
+      "starting": "⌛️ Restarting...",
+      "done": "👻 <b>Forelka Started</b>\n<blockquote>✅ <b>Restart time:</b> <code>{seconds:.2f}s</code></blockquote>"
+    },
+    "update": {
+      "checking": "⌛️ Updating...",
+      "up_to_date": "❗️ Already up to date",
+      "error": "❌ Error: <code>{error}</code>"
+    },
+    "help": {
+      "title": "📚 Forelka Modules",
+      "page": "Page {page} of {total}",
+      "system_header": "System:",
+      "external_header": "External:",
+      "no_system": "No system modules",
+      "no_external": "No external modules",
+      "inline_not_configured": "❌ Inline bot not configured.",
+      "access_restricted": "This feature is only available to userbot owners."
+    },
+    "owner": {
+      "add_usage": "❗️ Usage:\n\n<code>.addowner [user_id]</code> — add by ID\n<code>.addowner</code> (as a reply) — add the replied user",
+      "invalid_id": "❌ Invalid ID",
+      "already_owner": "❗️ User is already an owner",
+      "added": "✅ Owner added: <b>{name}</b> [<code>{id}</code>]"
+    },
+    "tsec": {
+      "usage_reply": "❗️ <b>Usage:</b>\n\n<code>.tsec [secs] [command]</code> (as a reply)\nExample: <code>.tsec 60 calc</code>",
+      "usage_args": "❗️ <b>Usage:</b>\n\n<code>.tsec [secs] [@user|id] [command]</code>\nExample: <code>.tsec 60 @username term</code>",
+      "bad_seconds": "❌ Invalid number of seconds",
+      "user_not_found": "❌ User not found",
+      "self_forbidden": "❌ You can't grant access to yourself",
+      "unknown_command": "❌ Unknown command: <code>{command}</code>",
+      "granted": "✅ <b>Temporary access granted</b>\n\n<b>User:</b> {name} [<code>{id}</code>]\n<b>Command:</b> <code>.{command}</code>\n<b>Duration:</b> {seconds}s"
+    },
+    "module": {
+      "loaded": "✅ <b>Module</b> <code>{name}</code> <b>loaded</b>",
+      "description": "⚙️ <b>Description:</b> {description}",
+      "author": "👤 <b>Author:</b> <code>{author}</code>",
+      "no_commands": "No commands",
+      "no_repos": "❗️ No repositories added",
+      "repos_list": "👻 <b>Repositories:</b>\n{list}",
+      "repo_added": "✅ <b>Repository added:</b> <code>{url}</code>",
+      "repo_exists": "❌ Repository already added.",
+      "bad_url": "❗️ URL must start with http:// or https://"
+    }
+  }
+}
