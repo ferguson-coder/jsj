@@ -24,7 +24,7 @@ async def update_cmd(client, message, args):
             )
 
         os.environ["RESTART_INFO"] = f"{time.time()}|{message.chat_id}|{message.id}"
-        os.execv(sys.executable, [sys.executable, "main.py"])
+        os.execv(sys.executable, [sys.executable, "-m", "forelka"])
     except Exception as e:
         await message.edit(
             f"<blockquote>{tr('cmd.update.error', error=e)}</blockquote>",
@@ -39,7 +39,7 @@ async def restart_cmd(client, message, args):
         f"<blockquote><tg-emoji emoji-id=5891211339170326418>⌛️</tg-emoji> <b>{tr('cmd.restart.starting')}</b></blockquote>",
         parse_mode="html",
     )
-    os.execv(sys.executable, [sys.executable, "main.py"])
+    os.execv(sys.executable, [sys.executable, "-m", "forelka"])
 
 
 def register(app, commands, module_name):

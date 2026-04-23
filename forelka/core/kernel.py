@@ -148,14 +148,10 @@ class Kernel:
         try:
             if not self.inline_bot or not self.inline_bot.bot_client:
                 return
-            config_path = f"config-{self.client._self_id}.json"
-            if not os.path.exists(config_path):
-                return
-            with open(config_path) as f:
-                config = json.load(f)
-            group_id = config.get("management_group_id")
-            topics = config.get("management_topics", {})
-            topic_id = topics.get(topic_name)
+            from forelka.config import AccountConfig
+            cfg = AccountConfig.load(self.client._self_id)
+            group_id = cfg.management_group_id
+            topic_id = cfg.management_topics.get(topic_name)
             if not group_id or not topic_id:
                 return
             # Бот не может резолвить отрицательный ID — используем PeerChannel

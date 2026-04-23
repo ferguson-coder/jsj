@@ -1,7 +1,7 @@
-import os
-import json
 import re
-from telethon import events, Button
+
+from forelka.config import AccountConfig
+
 
 def calculate_expression(expr: str):
     """Безопасно вычисляет простое математическое выражение."""
@@ -24,18 +24,7 @@ def calculate_expression(expr: str):
         raise ValueError(f"Ошибка: {e}")
 
 def is_owner(kernel, user_id):
-    config_path = f"config-{kernel.client._self_id}.json"
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                config = json.load(f)
-                owners = config.get("owners", [])
-                if kernel.client._self_id not in owners:
-                    owners.append(kernel.client._self_id)
-                return user_id in owners
-        except:
-            pass
-    return user_id == kernel.client._self_id
+    return AccountConfig.load(kernel.client._self_id).is_owner(user_id)
 
 # === Команды для юзербота ===
 async def calc_cmd(client, message, args):
@@ -59,25 +48,23 @@ async def calc_cmd(client, message, args):
         )
 
 # === Обработчики для инлайн-бота ===
-async def inline_calc_handler(event: events.InlineQuery.Event):
+async def inline_calc_handler(event, query: str = "") -> bool:
+    if not (query == "calc" or query.startswith("calc ")):
+        return False
+
     kernel = event.client.kernel
     user_id = event.sender_id
-    query = event.text.strip()
-
-    # --- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Игнорируем запросы, не относящиеся к калькулятору ---
-    if not query.startswith("calc"):
-        return  # <-- Это позволяет другим обработчикам работать
 
     if not is_owner(kernel, user_id):
         builder = event.builder
         no_access_result = builder.article(
-            title="🔒 Доступ запрещен",
+            title="🔒 Доступ запрещён",
             description="Эта функция доступна только владельцам.",
-            text="<blockquote><tg-emoji emoji-id=5778527486270770928>❌</emoji> <b>Доступ запрещен.</b>\nЭта функция доступна только владельцам юзербота.</blockquote>",
-            parse_mode='html'
+            text="<blockquote><tg-emoji emoji-id=5778527486270770928>❌</tg-emoji> <b>Доступ запрещён.</b>\nЭта функция доступна только владельцам юзербота.</blockquote>",
+            parse_mode='html',
         )
-        await event.answer([no_access_result], switch_pm="Доступ запрещен", switch_pm_param="forbidden")
-        return
+        await event.answer([no_access_result], switch_pm="Доступ запрещён", switch_pm_param="forbidden")
+        return True
 
     if query == "calc":
         builder = event.builder
@@ -85,36 +72,39 @@ async def inline_calc_handler(event: events.InlineQuery.Event):
             title="🔢 Калькулятор",
             description="Введите выражение, например: calc 2+2*3",
             text="<blockquote><b>Использование:</b> <code>calc &lt;выражение&gt;</code>\nПример: <code>calc 2 + 2 * 5</code></blockquote>",
-            parse_mode='html'
+            parse_mode='html',
         )
         await event.answer([help_result], switch_pm="Как использовать", switch_pm_param="help")
-        return
+        return True
 
-    if query.startswith("calc "):
-        expression = query[5:]
-        try:
-            result_value = calculate_expression(expression)
-            result_text = f"<blockquote><b>Выражение:</b> <code>{expression}</code>\n<b>Результат:</b> <code>{result_value}</code></blockquote>"
-            
-            builder = event.builder
-            result = builder.article(
-                title=f"Результат: {result_value}",
-                description=expression,
-                text=result_text,
-                parse_mode='html'
-            )
-            await event.answer([result])
-        except Exception as e:
-            builder = event.builder
-            error_result = builder.article(
-                title="❌ Ошибка",
-                description=str(e),
-                text=f"<blockquote><b>Ошибка при вычислении:</b>\n<code>{expression}</code>\n\n<code>{e}</code></blockquote>",
-                parse_mode='html'
-            )
-            await event.answer([error_result], switch_pm="Ошибка", switch_pm_param="error")
+    expression = query[5:]
+    try:
+        result_value = calculate_expression(expression)
+        result_text = (
+            f"<blockquote><b>Выражение:</b> <code>{expression}</code>\n"
+            f"<b>Результат:</b> <code>{result_value}</code></blockquote>"
+        )
+        builder = event.builder
+        result = builder.article(
+            title=f"Результат: {result_value}",
+            description=expression,
+            text=result_text,
+            parse_mode='html',
+        )
+        await event.answer([result])
+    except Exception as e:
+        builder = event.builder
+        error_result = builder.article(
+            title="❌ Ошибка",
+            description=str(e),
+            text=f"<blockquote><b>Ошибка при вычислении:</b>\n<code>{expression}</code>\n\n<code>{e}</code></blockquote>",
+            parse_mode='html',
+        )
+        await event.answer([error_result], switch_pm="Ошибка", switch_pm_param="error")
+    return True
 
-async def bot_calc_handler(event: events.NewMessage.Event):
+
+async def bot_calc_handler(event):
     kernel = event.client.kernel
     user_id = event.sender_id
 
@@ -156,4 +146,4 @@ def register(app, commands, module_name, kernel=None):
         
         kernel.register_bot_command("calc", bot_calc_handler)
         kernel.register_inline_handler(inline_calc_handler)
-        print(f"[Calculator] Инлайн-команды зарегистрированы.")
+        print("[Calculator] Инлайн-команды зарегистрированы.")
