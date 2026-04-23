@@ -89,12 +89,23 @@ class InlineBot:
                 await self.kernel.client.send_message(botfather, f"@{bot_username}")
                 await asyncio.sleep(5)
                 
-                avatar_paths = ["assets/avatar_inline.jpg", "assets/avatar_inline.png", "assets/avatar.jpg", "assets/avatar.png"]
-                avatar_path = next((p for p in avatar_paths if os.path.exists(p)), None)
+                from pathlib import Path as _Path
+                assets_dir = _Path(__file__).resolve().parent.parent / "assets"
+                candidates = [
+                    assets_dir / "avatar_inline.jpg",
+                    assets_dir / "avatar_inline.png",
+                    assets_dir / "avatar.jpg",
+                    assets_dir / "avatar.png",
+                    _Path("assets/avatar_inline.jpg"),  # legacy cwd fallback
+                ]
+                avatar_path = next((str(p) for p in candidates if p.exists()), None)
                 if avatar_path:
                     await self.kernel.client.send_file(botfather, avatar_path)
                     self.kernel.logger.info(f"Аватар установлен из {avatar_path}")
-                else: self.kernel.logger.warning("Аватар не найден (assets/avatar_inline.jpg/png)")
+                else:
+                    self.kernel.logger.warning(
+                        f"Аватар не найден (искал в {assets_dir})"
+                    )
                 
                 await asyncio.sleep(2)
                 self.kernel.logger.info("Перезапуск для применения настроек...")

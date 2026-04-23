@@ -1,12 +1,8 @@
 from __future__ import annotations
 
 import re
-
-from typing import Any, Dict, Iterable, List, Optional
-
-
-
-
+from collections.abc import Iterable
+from typing import Any, Optional
 
 META_FIELDS = {
 
@@ -82,9 +78,9 @@ def _normalize_command_name(value: Any) -> str:
 
 
 
-def _parse_commands_value(value: Any) -> Dict[str, str]:
+def _parse_commands_value(value: Any) -> dict[str, str]:
 
-    result: Dict[str, str] = {}
+    result: dict[str, str] = {}
 
     if value is None:
 
@@ -192,11 +188,11 @@ def _parse_commands_value(value: Any) -> Dict[str, str]:
 
 
 
-def extract_command_descriptions(raw: Any) -> Dict[str, str]:
+def extract_command_descriptions(raw: Any) -> dict[str, str]:
 
     meta = _coerce_meta(raw) or {}
 
-    result: Dict[str, str] = {}
+    result: dict[str, str] = {}
 
     candidates = []
 
@@ -238,7 +234,7 @@ def extract_command_descriptions(raw: Any) -> Dict[str, str]:
 
 
 
-def _normalize_commands(value: Optional[Iterable[str]]) -> List[str]:
+def _normalize_commands(value: Optional[Iterable[str]]) -> list[str]:
 
     if not value:
 
@@ -252,7 +248,7 @@ def _normalize_commands(value: Optional[Iterable[str]]) -> List[str]:
 
         items = list(value)
 
-    out: List[str] = []
+    out: list[str] = []
 
     seen = set()
 
@@ -271,7 +267,7 @@ def _normalize_commands(value: Optional[Iterable[str]]) -> List[str]:
     return out
 
 
-def _normalize_requires(value: Optional[Iterable[str]]) -> List[str]:
+def _normalize_requires(value: Optional[Iterable[str]]) -> list[str]:
 
     """Нормализует список зависимостей (pip-пакеты)."""
 
@@ -291,7 +287,7 @@ def _normalize_requires(value: Optional[Iterable[str]]) -> List[str]:
 
         items = list(value)
 
-    out: List[str] = []
+    out: list[str] = []
 
     seen = set()
 
@@ -313,7 +309,7 @@ def _normalize_requires(value: Optional[Iterable[str]]) -> List[str]:
 
 
 
-def _merge_commands(base: List[str], extra: Optional[Iterable[str]]) -> List[str]:
+def _merge_commands(base: list[str], extra: Optional[Iterable[str]]) -> list[str]:
 
     out = list(base or [])
 
@@ -329,7 +325,7 @@ def _merge_commands(base: List[str], extra: Optional[Iterable[str]]) -> List[str
 
 
 
-def _coerce_meta(raw: Any) -> Optional[Dict[str, Any]]:
+def _coerce_meta(raw: Any) -> Optional[dict[str, Any]]:
 
     if raw is None:
 
@@ -387,9 +383,9 @@ def build_meta(
 
     **extra: Any,
 
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
 
-    meta: Dict[str, Any] = {
+    meta: dict[str, Any] = {
 
         "name": _as_text(name),
 
@@ -429,13 +425,13 @@ def normalize_meta(
 
     commands: Optional[Iterable[str]] = None,
 
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
 
     meta = build_meta(name=fallback_name)
 
     raw_meta = _coerce_meta(raw)
 
-    extra: Dict[str, Any] = {}
+    extra: dict[str, Any] = {}
 
     if raw_meta:
 
@@ -485,7 +481,7 @@ def read_module_meta(
 
     commands: Optional[Iterable[str]] = None,
 
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
 
     raw = getattr(module, "__meta__", None) if module else None
 

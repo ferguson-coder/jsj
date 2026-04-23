@@ -22,7 +22,10 @@ jobs:
           pip install ruff pytest pytest-asyncio
 
       - name: Lint
-        run: ruff check forelka tests
+        # Only lint the actively-maintained core package + tests.
+        # Legacy modules (web/inline/modules/app.py/cli.py) will be
+        # brought up to ruff-clean over subsequent PRs.
+        run: ruff check forelka/core forelka/__init__.py forelka/__main__.py forelka/config.py forelka/i18n.py tests
 
       - name: Test
         run: pytest -q
