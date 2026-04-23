@@ -25,7 +25,6 @@ import threading
 from pathlib import Path
 from typing import Any
 
-
 DEFAULT_LANG = "ru"
 LOCALES_DIR = Path(__file__).resolve().parent.parent / "locales"
 

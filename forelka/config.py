@@ -28,7 +28,6 @@ from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any, ClassVar
 
-
 DEFAULT_LANG = "ru"
 
 
@@ -55,7 +54,7 @@ class AccountConfig:
     # Forward-compatible bucket for fields we haven't modelled yet.
     extra: dict[str, Any] = field(default_factory=dict)
 
-    _cache: ClassVar[dict[int, "AccountConfig"]] = {}
+    _cache: ClassVar[dict[int, AccountConfig]] = {}
     _lock: ClassVar[threading.Lock] = threading.Lock()
 
     # ------------------------------------------------------------------ paths
@@ -76,7 +75,7 @@ class AccountConfig:
     # ------------------------------------------------------------------ load
 
     @classmethod
-    def load(cls, user_id: int, *, use_cache: bool = True) -> "AccountConfig":
+    def load(cls, user_id: int, *, use_cache: bool = True) -> AccountConfig:
         """Load config for ``user_id`` from disk (or cache)."""
         with cls._lock:
             if use_cache and user_id in cls._cache:
@@ -101,7 +100,7 @@ class AccountConfig:
             return cfg
 
     @classmethod
-    def _from_dict(cls, user_id: int, data: dict[str, Any]) -> "AccountConfig":
+    def _from_dict(cls, user_id: int, data: dict[str, Any]) -> AccountConfig:
         known = {f.name for f in fields(cls) if f.name not in ("user_id", "extra")}
         kwargs: dict[str, Any] = {"user_id": user_id}
         extra: dict[str, Any] = {}

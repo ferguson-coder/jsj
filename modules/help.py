@@ -1,36 +1,25 @@
 import html
-import os
 import sys
-import json
-from telethon import events, Button
+
+from telethon import events, Button  # noqa: F401  (re-exported for callers)
+
+from forelka.config import AccountConfig
+from forelka.i18n import for_client
+
 
 def _escape(v):
     return html.escape(str(v)) if v is not None else ""
 
 def _get_prefix(client):
     p = getattr(client, "prefix", None)
-    if p: return p
-    path = f"config-{client._self_id}.json"
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f).get("prefix", ".")
-        except: pass
-    return "."
+    if p:
+        return p
+    return AccountConfig.load(client._self_id).prefix
 
 def _is_owner(client, user_id):
     """Проверяет, является ли user_id владельцем бота."""
-    path = f"config-{client._self_id}.json"
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
-                owners = cfg.get("owners", [])
-                if client._self_id not in owners:
-                    owners.append(client._self_id)
-                return user_id in owners
-        except: pass
-    return user_id == client._self_id
+    cfg = AccountConfig.load(client._self_id)
+    return cfg.is_owner(user_id)
 
 def _collect_modules(client):
     sys_mods, ext_mods = {}, {}
@@ -155,7 +144,8 @@ async def help_callback_handler(event, data: str = ""):
 
         # 🔒 ПОВТОРНАЯ ПРОВЕРКА ВЛАДЕЛЬЦА (КНОПКИ МОГУТ НАЖАТЬ ВСЕ)
         if not _is_owner(client, event.sender_id):
-            await event.answer("❌ Доступ запрещён.", alert=True)
+            tr = for_client(client)
+            await event.answer(f"❌ {tr('common.access_denied')}", alert=True)
             return True
         
         pref = _get_prefix(client)

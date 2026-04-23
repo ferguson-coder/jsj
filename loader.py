@@ -7,6 +7,9 @@ import sys
 import subprocess
 import requests
 from telethon import events
+
+from forelka.config import AccountConfig
+from forelka.i18n import for_client
 from meta_lib import extract_command_descriptions, read_module_meta
 
 REPOS_FILE = "repos.json"
@@ -27,14 +30,7 @@ def _get_prefix(client):
     pref = getattr(client, "prefix", None)
     if pref:
         return pref
-    path = f"config-{client._self_id}.json"
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                pref = json.load(f).get("prefix", ".")
-        except Exception:
-            pref = "."
-    return pref or "."
+    return AccountConfig.load(client._self_id).prefix
 
 def _module_commands(app, module_name):
     cmds = [c for c, v in app.commands.items() if v.get("module") == module_name]
