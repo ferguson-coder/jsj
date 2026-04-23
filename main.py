@@ -8,6 +8,7 @@ import re
 import threading
 import importlib.util
 import inspect
+from forelka.config import AccountConfig
 from telethon import TelegramClient, events
 from telethon.tl.types import PeerChannel, PeerChat, PeerUser
 from telethon.tl.functions.channels import (
@@ -298,34 +299,18 @@ async def _web_login_create_session(with_tunnel: bool = False):
         raise
 
 def is_owner(client, user_id):
-    path = f"config-{client._self_id}.json"
-    if os.path.exists(path):
-        try:
-            with open(path, "r") as f:
-                config = json.load(f)
-                owners = config.get("owners", [])
-                return user_id in owners
-        except:
-            pass
-    return False
+    cfg = AccountConfig.load(client._self_id)
+    return cfg.is_owner(user_id)
 
 async def handler(event):
     client = event.client
     message = event.message
     if not message.text:
         return
-        
-    path = f"config-{client._self_id}.json"
-    pref = "."
-    aliases = {}
-    if os.path.exists(path):
-        try:
-            with open(path, "r") as f:
-                config_data = json.load(f)
-                pref = config_data.get("prefix", ".")
-                aliases = config_data.get("aliases", {})
-        except:
-            pass
+
+    cfg = AccountConfig.load(client._self_id)
+    pref = cfg.prefix
+    aliases = cfg.aliases
 
     if not message.text.startswith(pref):
         return
@@ -382,17 +367,9 @@ async def owner_handler(event):
         if message.sender_id not in temp_access or not temp_access[message.sender_id]:
             return
 
-    path = f"config-{client._self_id}.json"
-    pref = "."
-    aliases = {}
-    if os.path.exists(path):
-        try:
-            with open(path, "r") as f:
-                config_data = json.load(f)
-                pref = config_data.get("prefix", ".")
-                aliases = config_data.get("aliases", {})
-        except:
-            pass
+    cfg = AccountConfig.load(client._self_id)
+    pref = cfg.prefix
+    aliases = cfg.aliases
 
     if not message.text.startswith(pref):
         return
