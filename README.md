@@ -10,17 +10,19 @@ modules, a Flask web login and per-account configuration.
 python -m venv .venv
 source .venv/bin/activate
 
-# install runtime deps
+# install (editable, so hot-reload / modules still work from repo)
 pip install -e .
-# or: pip install -r <(python -c "import tomllib,sys; d=tomllib.load(open('pyproject.toml','rb')); print('\\n'.join(d['project']['dependencies']))")
 
 # first launch — web login will prompt for API ID/HASH/phone
-python main.py
+python -m forelka
+# (or, after `pip install`, just `forelka`)
 ```
 
 Sessions are stored as `forelka-<user_id>.session` (legacy, kept for backward
 compatibility) or under `accounts/<user_id>/` (new layout used by
-`forelka.config.AccountConfig`).
+`forelka.config.AccountConfig`). Both the session files and `loaded_modules/`
+live in the current working directory, so pick a persistent data dir and
+run `forelka` from it.
 
 ## Configuration — `forelka.config.AccountConfig`
 
@@ -101,22 +103,39 @@ CI runs `ruff` + `pytest` on every push and PR.
 ## Project layout
 
 ```
-forelka/         # shared infrastructure package
-  config.py      # AccountConfig — single source of truth for per-account state
-  i18n.py        # t(), Translator, for_client() — locale bundles
-locales/
-  ru.json        # default UI language
-  en.json
-modules/         # hot-reloadable userbot commands (owner, help, info, …)
-  lang.py        # .lang command (new)
-tests/           # pytest suite for forelka.*
-main.py          # entry point — Telethon client, command dispatch
-kernel.py        # Kernel — bot lifecycle, inline bot, command registry
-loader.py        # .dlm / .addrepo — external module loader
-webapp.py        # Flask web login (API ID/HASH/phone + 2FA)
-tunnel.py        # SSH reverse tunnel via localhost.run
-Updater.py       # .update / .restart
+forelka/                     # the package — everything lives in here now
+  __init__.py                # re-exports AccountConfig, t, Translator, for_client
+  __main__.py                # `python -m forelka` entrypoint
+  app.py                     # main loop: session discovery, client start, dispatch
+  cli.py                     # interactive TUI (`forelka-cli`)
+  core/                      # shared infrastructure
+    config.py                # AccountConfig — single source of truth for per-account state
+    i18n.py                  # t(), Translator, for_client() — locale bundles
+    kernel.py                # Kernel — per-client lifecycle, command registry
+    loader.py                # .dlm / .addrepo — external module loader
+    meta.py                  # module __meta__ parser (was meta_lib.py)
+    database.py              # SQLite KV used by module configs
+    utils.py                 # tiny helpers (prefix parsing, …)
+  inline/
+    bot.py                   # BotFather-automated inline helper bot
+  web/
+    app.py                   # Flask web login (API ID/HASH/phone + 2FA)
+    tunnel.py                # SSH reverse tunnel via localhost.run
+  modules/                   # hot-reloadable userbot commands
+    help.py, owner.py, info.py, ping.py, lang.py, updater.py, …
+  assets/                    # bundled static resources (avatar, …)
+  locales/                   # i18n bundles
+    ru.json
+    en.json
+tests/                       # pytest suite (config, i18n, package-layout smoke)
+loaded_modules/              # user-installed third-party modules (cwd, gitignored)
+accounts/<user_id>/          # per-account config + session (new layout, cwd)
 ```
+
+Backwards-compatible shims keep `from forelka.config import AccountConfig` and
+`from forelka.i18n import t` working — they now re-export from
+`forelka.core.*`. Legacy cwd paths (`config-<id>.json`, `forelka-<id>.session`,
+etc.) are still read on startup.
 
 ## Known limitations / roadmap
 

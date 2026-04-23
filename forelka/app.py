@@ -23,7 +23,7 @@ from telethon.tl.functions.messages import (
 from telethon.tl.types import ChatAdminRights
 import sqlite3
 import struct
-from kernel import Kernel
+from forelka.core.kernel import Kernel
 
 # Загружаем версию из файла
 def get_version():
@@ -563,21 +563,29 @@ async def retry_add_bot_to_group(kernel):
 
 # === ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ МОДУЛЕЙ ===
 def load_modules_with_config(client, kernel):
-    """Загружает модули из modules/ и loaded_modules/ + регистрирует loader"""
+    """Загружает встроенные модули (``forelka.modules``) и внешние (``loaded_modules/``)."""
+    from forelka.modules import MODULES_DIR
+
     commands = {}
     kernel.module_configs = getattr(kernel, 'module_configs', {})
-    folders = ["modules", "loaded_modules"]
+    folders: list[tuple[str, str]] = [
+        ("forelka.modules", str(MODULES_DIR)),
+        ("loaded_modules", "loaded_modules"),
+    ]
 
-    for folder in folders:
+    for package_prefix, folder in folders:
         if not os.path.exists(folder):
             os.makedirs(folder)
             continue
 
-        for module_file in os.listdir(folder):
+        for module_file in sorted(os.listdir(folder)):
             if not module_file.endswith('.py') or module_file == '__init__.py':
                 continue
 
-            module_name = module_file[:-3]
+            stem = module_file[:-3]
+            module_name = (
+                f"{package_prefix}.{stem}" if package_prefix.startswith("forelka") else stem
+            )
             full_path = os.path.join(folder, module_file)
 
             try:
@@ -602,7 +610,7 @@ def load_modules_with_config(client, kernel):
                     else:
                         module.register(client)
 
-                    print(f"[+] Загружен модуль: {module_name} из {folder}")
+                    print(f"[+] Загружен модуль: {stem} из {folder}")
 
                     if hasattr(module, 'get_config'):
                         kernel.module_configs[module_name] = module.get_config
@@ -610,14 +618,14 @@ def load_modules_with_config(client, kernel):
 
                 if not hasattr(client, 'loaded_modules'):
                     client.loaded_modules = set()
-                client.loaded_modules.add(module_name)
+                client.loaded_modules.add(stem)
 
             except Exception as e:
-                print(f"[-] Ошибка загрузки {module_name} из {folder}: {type(e).__name__}: {e}")
+                print(f"[-] Ошибка загрузки {stem} из {folder}: {type(e).__name__}: {e}")
 
     return commands
 
-async def main():
+async def _run() -> None:
     sess = _pick_latest_session()
     web_proc = None
     tunnel_proc = None
@@ -697,7 +705,7 @@ async def main():
     client.commands = load_modules_with_config(client, kernel)
 
     try:
-        from loader import register_loader_commands
+        from forelka.core.loader import register_loader_commands
         register_loader_commands(client)
         if "loader" not in client.loaded_modules:
             client.loaded_modules.add("loader")
@@ -774,5 +782,10 @@ Forelka v""" + f"{FORELKA_VERSION} | Git: #{git}")
                 pass
             await kernel.stop()
 
+def main() -> None:
+    """Sync entry point used by ``python -m forelka`` and ``forelka`` console script."""
+    asyncio.run(_run())
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

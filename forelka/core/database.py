@@ -2,6 +2,7 @@
 import sqlite3
 import threading
 
+
 class Database:
     def __init__(self, db_path="forelka.db"):
         self.conn = sqlite3.connect(db_path, check_same_thread=False)

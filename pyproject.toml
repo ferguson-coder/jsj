@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "forelka"
 version = "2.0.0"
@@ -21,31 +25,39 @@ dev = [
     "ruff>=0.5",
 ]
 
-[tool.setuptools]
-packages = ["forelka"]
+[project.scripts]
+forelka = "forelka.app:main"
+forelka-cli = "forelka.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["forelka*"]
+
+[tool.setuptools.package-data]
+"forelka.locales" = ["*.json"]
+"forelka.assets" = ["*"]
 
 [tool.ruff]
 line-length = 120
 target-version = "py310"
-extend-exclude = ["loaded_modules", "accounts", "assets"]
+extend-exclude = ["loaded_modules", "accounts"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]
-# The legacy codebase has a lot of bare `except:` clauses and unused imports
-# we haven't migrated yet — keep the ignore list small and explicit.
 ignore = [
     "E501",   # long lines (Telegram HTML strings)
     "E701",   # multi-statement `if foo: return bar`
-    "E722",   # bare except (to be tightened per-file)
+    "E722",   # bare except (legacy code)
     "B904",   # raise ... from err
     "UP007",  # keep Optional[X] syntax
-    "UP045",  # keep Optional[X] syntax in annotations
+    "UP045",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"modules/*" = ["E402", "F401", "F403", "F405"]
-"cli.py" = ["E402"]
-"main.py" = ["E402", "F401"]
+"forelka/modules/*" = ["E402", "F401", "F403", "F405"]
+"forelka/cli.py" = ["E402"]
+"forelka/app.py" = ["E402", "F401"]
+# loader.py uses a terse `stmt; stmt` style throughout; leave alone until it's rewritten.
+"forelka/core/loader.py" = ["E702"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
