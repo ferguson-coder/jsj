@@ -3,14 +3,13 @@ import importlib.util
 import inspect
 import json
 import os
-import sys
 import subprocess
-import requests
-from telethon import events
+import sys
 
-from forelka.config import AccountConfig
-from forelka.i18n import for_client
-from meta_lib import extract_command_descriptions, read_module_meta
+import requests
+
+from forelka.core.config import AccountConfig
+from forelka.core.meta import extract_command_descriptions, read_module_meta
 
 REPOS_FILE = "repos.json"
 
@@ -21,7 +20,8 @@ def _personal_folder(client):
     return folder
 
 def is_protected(name):
-    return os.path.exists(f"modules/{name}.py") or name in ["loader", "main"]
+    from forelka.modules import MODULES_DIR
+    return (MODULES_DIR / f"{name}.py").exists() or name in ["loader", "main", "app"]
 
 def _escape(value):
     return html.escape(str(value)) if value is not None else ""
@@ -51,7 +51,7 @@ def _install_dependencies(requires, module_name=""):
             missing.append(pkg)
     if not missing:
         return True, []
-    try: 
+    try:
         module_desc = f" для {module_name}" if module_name else ""
         print(f"[pip] Установка зависимостей{module_desc}: {', '.join(missing)}")
         result = subprocess.run(
@@ -66,10 +66,10 @@ def _install_dependencies(requires, module_name=""):
         if still_missing:
             print(f"[pip] Не удалось установить: {', '.join(still_missing)}")
             return False, still_missing
-        print(f"[pip] Зависимости установлены успешно")
+        print("[pip] Зависимости установлены успешно")
         return True, []
     except subprocess.TimeoutExpired:
-        print(f"[pip] Таймаут установки зависимостей")
+        print("[pip] Таймаут установки зависимостей")
         return False, missing
     except Exception as e:
         print(f"[pip] Ошибка: {type(e).__name__}: {e}")
@@ -83,9 +83,9 @@ def _is_package_installed(pkg_spec):
     version_spec = match.group(2).strip()
     try:
         try:
-            from importlib.metadata import version, PackageNotFoundError
+            from importlib.metadata import PackageNotFoundError, version
         except ImportError:
-            from importlib_metadata import version, PackageNotFoundError
+            from importlib_metadata import PackageNotFoundError, version
         installed_ver = version(pkg_name)
         if not version_spec: return True
         return _check_version(installed_ver, version_spec)
@@ -123,7 +123,7 @@ def _check_version(installed_ver, spec):
 
 def _get_module_requires(path):
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             content = f.read()
         import re
         meta_match = re.search(r'__meta__\s*=\s*\{([^}]+)\}', content, re.DOTALL)
@@ -194,7 +194,7 @@ def _format_meta_block(app, module_name):
 def load_repos():
     if os.path.exists(REPOS_FILE):
         try:
-            with open(REPOS_FILE, "r", encoding="utf-8") as f: return json.load(f)
+            with open(REPOS_FILE, encoding="utf-8") as f: return json.load(f)
         except: pass
     return []
 
@@ -236,7 +236,7 @@ async def dlm_cmd(client, message, args):
             with open(path, "wb") as f: f.write(r.content)
             requires = _get_module_requires(path)
             if requires:
-                await message.edit(f"<blockquote><tg-emoji emoji-id=5891211339170326418>⌛️</tg-emoji> <b>Проверка зависимостей...</b></blockquote>", parse_mode='html')
+                await message.edit("<blockquote><tg-emoji emoji-id=5891211339170326418>⌛️</tg-emoji> <b>Проверка зависимостей...</b></blockquote>", parse_mode='html')
                 success, missing = _install_dependencies(requires, module_name)
                 if not success:
                     os.remove(path)
@@ -277,7 +277,7 @@ async def dlm_cmd(client, message, args):
         with open(path, "wb") as f: f.write(r.content)
         requires = _get_module_requires(path)
         if requires:
-            await message.edit(f"<blockquote><tg-emoji emoji-id=5891211339170326418>⌛️</tg-emoji> <b>Проверка зависимостей...</b></blockquote>", parse_mode='html')
+            await message.edit("<blockquote><tg-emoji emoji-id=5891211339170326418>⌛️</tg-emoji> <b>Проверка зависимостей...</b></blockquote>", parse_mode='html')
             success, missing = _install_dependencies(requires, module_name)
             if not success:
                 os.remove(path)
@@ -305,7 +305,7 @@ async def lm_cmd(client, message, args):
         await client.download_media(reply_msg, file=path)
         requires = _get_module_requires(path)
         if requires:
-            await message.edit(f"<blockquote><tg-emoji emoji-id=5891211339170326418>⌛️</tg-emoji> <b>Проверка зависимостей...</b></blockquote>", parse_mode='html')
+            await message.edit("<blockquote><tg-emoji emoji-id=5891211339170326418>⌛️</tg-emoji> <b>Проверка зависимостей...</b></blockquote>", parse_mode='html')
             success, missing = _install_dependencies(requires, name)
             if not success:
                 os.remove(path)

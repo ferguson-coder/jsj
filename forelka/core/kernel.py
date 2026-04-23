@@ -1,14 +1,13 @@
-import os
-import sys
 import json
 import logging
-import asyncio
+import os
+
 import aiosqlite
-from pathlib import Path
 from telethon import TelegramClient, functions
 from telethon.tl.types import PeerChannel
-from telethon.errors import SessionPasswordNeededError
-from inline_bot import InlineBot
+
+from forelka.inline.bot import InlineBot
+
 
 class Colors:
     RESET = "\033[0m"
@@ -55,7 +54,7 @@ class Kernel:
     def _load_config(self):
         if os.path.exists(self.CONFIG_FILE):
             try:
-                with open(self.CONFIG_FILE, "r", encoding="utf-8") as f:
+                with open(self.CONFIG_FILE, encoding="utf-8") as f:
                     return json.load(f)
             except Exception as e:
                 self.logger.error(f"Ошибка загрузки конфигурации: {e}")
@@ -116,12 +115,12 @@ class Kernel:
         """Выполняет инлайн-запрос и отправляет первый результат."""
         if not self.inline_bot or not self.inline_bot.bot_client:
             raise ValueError("Инлайн-бот не запущен.")
-        
+
         try:
             # Явно получаем entity бота
             bot_entity = await self.client.get_entity(self.inline_bot.username)
             chat_entity = await self.client.get_entity(chat_id)
-            
+
             result = await self.client(
                 functions.messages.GetInlineBotResultsRequest(
                     bot=bot_entity,
@@ -130,10 +129,10 @@ class Kernel:
                     offset=""
                 )
             )
-            
+
             if not result.results:
                 raise ValueError("Бот не вернул результатов.")
-            
+
             await self.client(
                 functions.messages.SendInlineBotResultRequest(
                     peer=chat_entity,
@@ -152,7 +151,7 @@ class Kernel:
             config_path = f"config-{self.client._self_id}.json"
             if not os.path.exists(config_path):
                 return
-            with open(config_path, "r") as f:
+            with open(config_path) as f:
                 config = json.load(f)
             group_id = config.get("management_group_id")
             topics = config.get("management_topics", {})
