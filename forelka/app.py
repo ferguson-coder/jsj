@@ -563,17 +563,20 @@ async def retry_add_bot_to_group(kernel):
 
 # === ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ МОДУЛЕЙ ===
 def load_modules_with_config(client, kernel):
-    """Загружает встроенные модули (``forelka.modules``) и внешние (``loaded_modules/``)."""
+    """Загружает встроенные модули (``forelka/modules/*.py``) и внешние (``loaded_modules/``).
+
+    Модули регистрируются в ``sys.modules`` под коротким именем (``help``,
+    ``owner``, …), без префикса ``forelka.modules.`` — так же как и
+    пользовательские, чтобы код модулей и логи нигде не зависели от того,
+    лежит ли модуль внутри пакета или подложен снаружи.
+    """
     from forelka.modules import MODULES_DIR
 
     commands = {}
     kernel.module_configs = getattr(kernel, 'module_configs', {})
-    folders: list[tuple[str, str]] = [
-        ("forelka.modules", str(MODULES_DIR)),
-        ("loaded_modules", "loaded_modules"),
-    ]
+    folders = [str(MODULES_DIR), "loaded_modules"]
 
-    for package_prefix, folder in folders:
+    for folder in folders:
         if not os.path.exists(folder):
             os.makedirs(folder)
             continue
@@ -582,10 +585,7 @@ def load_modules_with_config(client, kernel):
             if not module_file.endswith('.py') or module_file == '__init__.py':
                 continue
 
-            stem = module_file[:-3]
-            module_name = (
-                f"{package_prefix}.{stem}" if package_prefix.startswith("forelka") else stem
-            )
+            module_name = module_file[:-3]
             full_path = os.path.join(folder, module_file)
 
             try:
@@ -610,7 +610,7 @@ def load_modules_with_config(client, kernel):
                     else:
                         module.register(client)
 
-                    print(f"[+] Загружен модуль: {stem} из {folder}")
+                    print(f"[+] Загружен модуль: {module_name} из {folder}")
 
                     if hasattr(module, 'get_config'):
                         kernel.module_configs[module_name] = module.get_config
@@ -618,10 +618,10 @@ def load_modules_with_config(client, kernel):
 
                 if not hasattr(client, 'loaded_modules'):
                     client.loaded_modules = set()
-                client.loaded_modules.add(stem)
+                client.loaded_modules.add(module_name)
 
             except Exception as e:
-                print(f"[-] Ошибка загрузки {stem} из {folder}: {type(e).__name__}: {e}")
+                print(f"[-] Ошибка загрузки {module_name} из {folder}: {type(e).__name__}: {e}")
 
     return commands
 
