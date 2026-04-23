@@ -1,10 +1,11 @@
 import os
-import json
-import time
-import subprocess
-import requests
 import platform
-from telethon.tl.custom import Message
+import subprocess
+import time
+
+import requests
+
+from forelka.config import AccountConfig
 
 try:
     import psutil
@@ -93,19 +94,11 @@ async def info_cmd(client, message, args):
     if not owner_name:
         owner_name = "Unknown"
 
-    config_path = f"config-{client._self_id}.json"
-    config = {}
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                config = json.load(f)
-        except:
-            pass
-
-    prefix = config.get("prefix", ".")
-    quote_media = config.get("info_quote_media", False)
-    banner_url = config.get("info_banner_url", "")
-    invert_media = config.get("info_invert_media", True)
+    cfg = AccountConfig.load(client._self_id)
+    prefix = cfg.prefix
+    quote_media = cfg.info_quote_media
+    banner_url = cfg.info_banner_url
+    invert_media = cfg.info_invert_media
 
     try:
         branch = subprocess.check_output(
@@ -207,20 +200,12 @@ async def info_cmd(client, message, args):
 
 async def setinfobanner_cmd(client, message, args):
     """Настройка баннера и quote media для команды info"""
-    config_path = f"config-{client._self_id}.json"
-
-    config = {"prefix": "."}
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                config = json.load(f)
-        except:
-            pass
+    cfg = AccountConfig.load(client._self_id)
 
     if not args:
-        quote_media = config.get("info_quote_media", False)
-        banner_url = config.get("info_banner_url", "не установлен")
-        invert_media = config.get("info_invert_media", True)
+        quote_media = cfg.info_quote_media
+        banner_url = cfg.info_banner_url or "не установлен"
+        invert_media = cfg.info_invert_media
 
         return await message.edit(
             f"<blockquote><tg-emoji emoji-id=5897962422169243693>👻</emoji> <b>Info Banner Settings</b>\n\n"
@@ -246,10 +231,10 @@ async def setinfobanner_cmd(client, message, args):
 
         state = args[1].lower()
         if state in ["on", "true", "1", "да", "yes"]:
-            config["info_invert_media"] = True
+            cfg.info_invert_media = True
             status = "✅ Включен (превью СВЕРХУ)"
         elif state in ["off", "false", "0", "нет", "no"]:
-            config["info_invert_media"] = False
+            cfg.info_invert_media = False
             status = "❌ Выключен (превью СНИЗУ)"
         else:
             return await message.edit(
@@ -257,8 +242,7 @@ async def setinfobanner_cmd(client, message, args):
                 parse_mode='html'
             )
 
-        with open(config_path, "w") as f:
-            json.dump(config, f, indent=4)
+        cfg.save()
 
         await message.edit(
             f"<blockquote><tg-emoji emoji-id=5776375003280838798>✅</emoji> <b>Invert Media {status}</b></blockquote>",
@@ -274,10 +258,10 @@ async def setinfobanner_cmd(client, message, args):
 
         state = args[1].lower()
         if state in ["on", "true", "1", "да", "yes"]:
-            config["info_quote_media"] = True
+            cfg.info_quote_media = True
             status = "✅ Включен"
         elif state in ["off", "false", "0", "нет", "no"]:
-            config["info_quote_media"] = False
+            cfg.info_quote_media = False
             status = "❌ Выключен"
         else:
             return await message.edit(
@@ -285,8 +269,7 @@ async def setinfobanner_cmd(client, message, args):
                 parse_mode='html'
             )
 
-        with open(config_path, "w") as f:
-            json.dump(config, f, indent=4)
+        cfg.save()
 
         await message.edit(
             f"<blockquote><tg-emoji emoji-id=5776375003280838798>✅</emoji> <b>Quote Media {status}</b></blockquote>",
@@ -294,13 +277,9 @@ async def setinfobanner_cmd(client, message, args):
         )
 
     elif cmd == "clear":
-        if "info_banner_url" in config:
-            del config["info_banner_url"]
-        if "info_quote_media" in config:
-            del config["info_quote_media"]
-
-        with open(config_path, "w") as f:
-            json.dump(config, f, indent=4)
+        cfg.info_banner_url = ""
+        cfg.info_quote_media = False
+        cfg.save()
 
         await message.edit(
             "<blockquote><tg-emoji emoji-id=5776375003280838798>✅</emoji> <b>Настройки баннера удалены</b></blockquote>",
@@ -319,10 +298,8 @@ async def setinfobanner_cmd(client, message, args):
                 parse_mode='html'
             )
 
-        config["info_banner_url"] = banner_url
-
-        with open(config_path, "w") as f:
-            json.dump(config, f, indent=4)
+        cfg.info_banner_url = banner_url
+        cfg.save()
 
         banner_type = "🌐 Web URL" if is_web_url else "📁 Local File"
 

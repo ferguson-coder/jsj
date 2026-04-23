@@ -220,7 +220,7 @@ SUCCESS_HTML = """
         <div class="steps"><div class="step done"></div><div class="step done"></div><div class="step done"></div></div>
         <h1>Готово</h1>
         <div class="ok"><b>Сессия создана:</b> <code>{{ session_file }}</code></div>
-        <p>Юзербот готов к работе. Запустите: <code>python main.py</code></p>
+        <p>Юзербот готов к работе. Запустите: <code>python -m forelka</code></p>
         <p class="muted">API данные сохранены в <code>{{ api_file }}</code>.</p>
         <p><a href="/">Создать ещё одну сессию</a></p>
       </div>

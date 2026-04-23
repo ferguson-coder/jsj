@@ -1,38 +1,18 @@
-import json
-import os
 import html
+
+from forelka.config import AccountConfig
 
 
 def _escape(value):
     return html.escape(str(value)) if value is not None else ""
 
 
-def _get_prefix(client):
-    path = f"config-{client._self_id}.json"
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f).get("prefix", ".")
-        except Exception:
-            pass
-    return "."
+def _cfg(client) -> AccountConfig:
+    return AccountConfig.load(client._self_id)
 
 
-def _load_config(client):
-    path = f"config-{client._self_id}.json"
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return {}
-
-
-def _save_config(client, config):
-    path = f"config-{client._self_id}.json"
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=4, ensure_ascii=False)
+def _get_prefix(client) -> str:
+    return _cfg(client).prefix
 
 
 async def alias_cmd(client, message, args):
@@ -65,11 +45,11 @@ async def alias_cmd(client, message, args):
         )
         return
 
-    config = _load_config(client)
-    aliases = config.get("aliases", {})
+    cfg = _cfg(client)
+    aliases = dict(cfg.aliases)
     aliases[name] = target
-    config["aliases"] = aliases
-    _save_config(client, config)
+    cfg.aliases = aliases
+    cfg.save()
 
     await message.edit(
         f"<blockquote><tg-emoji emoji-id=5776375003280838798>✅</emoji> "
@@ -91,8 +71,8 @@ async def delalias_cmd(client, message, args):
         return
 
     name = args[0].lower()
-    config = _load_config(client)
-    aliases = config.get("aliases", {})
+    cfg = _cfg(client)
+    aliases = dict(cfg.aliases)
 
     if name not in aliases:
         await message.edit(
@@ -103,8 +83,8 @@ async def delalias_cmd(client, message, args):
         return
 
     del aliases[name]
-    config["aliases"] = aliases
-    _save_config(client, config)
+    cfg.aliases = aliases
+    cfg.save()
 
     await message.edit(
         f"<blockquote><tg-emoji emoji-id=5776375003280838798>✅</emoji> "
@@ -115,8 +95,7 @@ async def delalias_cmd(client, message, args):
 
 async def aliases_cmd(client, message, args):
     pref = _get_prefix(client)
-    config = _load_config(client)
-    aliases = config.get("aliases", {})
+    aliases = _cfg(client).aliases
 
     if not aliases:
         await message.edit(

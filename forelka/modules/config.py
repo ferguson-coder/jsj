@@ -1,10 +1,24 @@
-import os
-import json
 import asyncio
+import json
+
 import aiosqlite
-from telethon import events, Button
+from telethon import Button
+
+from forelka.config import AccountConfig
 
 DB_PATH = "forelka_config.db"
+
+_CFG_CALLBACK_PREFIXES = (
+    "config_close",
+    "config_main",
+    "config_modules",
+    "config_module_",
+    "config_common",
+    "cfg_toggle_",
+    "cfg_edit_",
+    "cfg_list_",
+    "cfg_save_",
+)
 
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
@@ -59,12 +73,13 @@ async def config_cmd(client, message, args):
         await message.edit(f"❌ Ошибка: {e}")
 
 # === ЕДИНСТВЕННЫЙ ОБРАБОТЧИК ИНЛАЙН-ЗАПРОСОВ ===
-async def config_inline_handler(event: events.InlineQuery.Event):
+async def config_inline_handler(event, query: str = "") -> bool:
+    if not (query == "config" or (query.startswith("cfg_save_") and " " in query)):
+        return False
+
     kernel = event.client.kernel
     user_id = event.sender_id
-    query = event.text.strip()
-    
-    # Главное меню
+
     if query == "config":
         if not is_owner(kernel, user_id):
             builder = event.builder
@@ -74,7 +89,7 @@ async def config_inline_handler(event: events.InlineQuery.Event):
                 parse_mode='html'
             )
             await event.answer([no_access])
-            return
+            return True
 
         builder = event.builder
         result = builder.article(
@@ -92,22 +107,22 @@ async def config_inline_handler(event: events.InlineQuery.Event):
             ]
         )
         await event.answer([result])
-        return
-        
-    # Обработка сохранения значения
+        return True
+
+    # Обработка сохранения значения (switch_inline c введенным параметром)
     if query.startswith("cfg_save_") and " " in query:
         if not is_owner(kernel, user_id):
-            return
-            
+            return True
+
         prefix, new_value_str = query.split(" ", 1)
         parts = prefix.split("_", 3)
         if len(parts) < 4:
-            return
+            return True
             
         module_name, key = parts[2], parts[3]
         if module_name not in kernel.module_configs:
-            return
-            
+            return True
+
         # Парсим значение
         new_value = new_value_str
         if new_value_str.lower() == "true":
@@ -129,22 +144,25 @@ async def config_inline_handler(event: events.InlineQuery.Event):
             parse_mode='html'
         )
         await event.answer([result])
-        return
+        return True
+
+    return False
 
 # === ОБРАБОТЧИК КНОПОК (ТОЛЬКО НАВИГАЦИЯ И ПЕРЕКЛЮЧЕНИЕ BOOL) ===
-async def config_callback_handler(event: events.CallbackQuery.Event):
+async def config_callback_handler(event, data: str = "") -> bool:
+    if not any(data == p or data.startswith(p) for p in _CFG_CALLBACK_PREFIXES):
+        return False
+
     kernel = event.client.kernel
     user_id = event.sender_id
-    
-    if not is_owner(kernel, user_id):
-        await event.answer("Доступ запрещен!", alert=True)
-        return
 
-    data = event.data.decode('utf-8')
-    
+    if not is_owner(kernel, user_id):
+        await event.answer("Доступ запрещён!", alert=True)
+        return True
+
     if data == "config_close":
         await event.delete()
-        return
+        return True
         
     elif data == "config_main":
         await event.edit(
@@ -160,7 +178,7 @@ async def config_callback_handler(event: events.CallbackQuery.Event):
                 ]
             ]
         )
-        return
+        return True
         
     elif data == "config_modules":
         module_buttons = []
@@ -177,13 +195,13 @@ async def config_callback_handler(event: events.CallbackQuery.Event):
             parse_mode='html',
             buttons=module_buttons
         )
-        return
+        return True
         
     elif data.startswith("config_module_"):
         module_name = data[len("config_module_"):]
         if module_name not in kernel.module_configs:
             await event.answer("Модуль не найден!", alert=True)
-            return
+            return True
             
         config_func = kernel.module_configs[module_name]
         default_config = config_func(kernel, module_name)
@@ -208,21 +226,21 @@ async def config_callback_handler(event: events.CallbackQuery.Event):
         config_buttons.append([Button.inline("⬅️ Назад", data="config_modules")])
         
         await event.edit(text, parse_mode='html', buttons=config_buttons)
-        return
+        return True
         
     elif data.startswith("cfg_toggle_"):
         parts = data.split("_", 3)
         module_name, key = parts[2], parts[3]
         if module_name not in kernel.module_configs:
             await event.answer("Модуль не найден!", alert=True)
-            return
+            return True
             
         config_func = kernel.module_configs[module_name]
         default_config = config_func(kernel, module_name)
         setting = default_config.get(key)
         if not setting or setting["type"] != "bool":
             await event.answer("Неверная настройка!", alert=True)
-            return
+            return True
             
         description = setting.get("description", "Описание отсутствует.")
         current_config = await get_module_config(module_name)
@@ -245,14 +263,14 @@ async def config_callback_handler(event: events.CallbackQuery.Event):
                 [Button.inline("❌ Закрыть", data="config_close")]
             ]
         )
-        return
+        return True
         
     elif data.startswith("cfg_edit_"):
         parts = data.split("_", 3)
         module_name, key = parts[2], parts[3]
         if module_name not in kernel.module_configs:
             await event.answer("Модуль не найден!", alert=True)
-            return
+            return True
             
         config_func = kernel.module_configs[module_name]
         default_config = config_func(kernel, module_name)
@@ -260,7 +278,7 @@ async def config_callback_handler(event: events.CallbackQuery.Event):
         setting = default_config.get(key)
         if not setting:
             await event.answer("Настройка не найдена!", alert=True)
-            return
+            return True
             
         current_value = current_config.get(key, setting.get("default", "N/A"))
         default_value = setting.get("default", "N/A")
@@ -273,14 +291,14 @@ async def config_callback_handler(event: events.CallbackQuery.Event):
             [Button.inline("⬅️ Назад", data=f"config_module_{module_name}")]
         ]
         await event.edit(text, parse_mode='html', buttons=buttons)
-        return
+        return True
         
     elif data.startswith("cfg_list_"):
         parts = data.split("_", 3)
         module_name, key = parts[2], parts[3]
         if module_name not in kernel.module_configs:
             await event.answer("Модуль не найден!", alert=True)
-            return
+            return True
             
         config_func = kernel.module_configs[module_name]
         default_config = config_func(kernel, module_name)
@@ -288,7 +306,7 @@ async def config_callback_handler(event: events.CallbackQuery.Event):
         setting = default_config.get(key)
         if not setting or setting["type"] != "list":
             await event.answer("Неверная настройка!", alert=True)
-            return
+            return True
             
         current_value = current_config.get(key, setting.get("default", setting["options"][0]))
         option_buttons = []
@@ -304,18 +322,18 @@ async def config_callback_handler(event: events.CallbackQuery.Event):
             parse_mode='html',
             buttons=option_buttons
         )
-        return
+        return True
         
     # Обработка кнопок SET TRUE/FALSE
     elif data.startswith("cfg_save_") and "_" in data[9:]:
         parts = data.split("_", 4)
         if len(parts) < 5:
-            return
+            return True
             
         module_name, key, raw_value = parts[2], parts[3], "_".join(parts[4:])
         if module_name not in kernel.module_configs:
             await event.answer("Модуль не найден!", alert=True)
-            return
+            return True
             
         # Преобразуем строку в bool
         if raw_value == "true":
@@ -335,7 +353,7 @@ async def config_callback_handler(event: events.CallbackQuery.Event):
                 [Button.inline("❌ Закрыть", data="config_close")]
             ]
         )
-        return
+        return True
 
 def build_config_buttons(config_data, module_name):
     buttons = []
@@ -356,6 +374,12 @@ def build_config_buttons(config_data, module_name):
     return buttons
 
 def is_owner(kernel, user_id):
+    return AccountConfig.load(kernel.client._self_id).is_owner(user_id)
+
+
+def _legacy_is_owner(kernel, user_id):
+    # Unused; kept for reference.
+    import os
     config_path = f"config-{kernel.client._self_id}.json"
     if os.path.exists(config_path):
         try:

@@ -1,11 +1,10 @@
 import asyncio
-import aiohttp
-import json
-import os
-import re
-import sys
 import html
-from telethon import TelegramClient, events, Button
+import re
+
+from telethon import Button, TelegramClient, events
+
+from forelka.config import AccountConfig
 
 class Colors:
     RESET = "\033[0m"
@@ -163,14 +162,14 @@ class InlineBot:
         @self.bot_client.on(events.NewMessage)
         async def global_message_router(event):
             if hasattr(event.client, 'feedback_reply_to'):
-                from modules.feedback import owner_reply_handler
+                from forelka.modules.feedback import owner_reply_handler
                 await owner_reply_handler(event); return
 
             text = event.raw_text or ""
             user_id = event.sender_id
             if user_id in self.kernel.feedback_users:
                 if not text.startswith('/') and not event.message.action and not event.message.out:
-                    from modules.feedback import feedback_message_handler
+                    from forelka.modules.feedback import feedback_message_handler
                     await feedback_message_handler(event); return
                 if not text.startswith('/start'): return
 
@@ -270,16 +269,7 @@ class InlineBot:
         )
 
     def _is_owner(self, user_id):
-        config_path = f"config-{self.kernel.client._self_id}.json"
-        if os.path.exists(config_path):
-            try:
-                with open(config_path, "r") as f:
-                    config = json.load(f)
-                    owners = config.get("owners", [])
-                    if self.kernel.client._self_id not in owners: owners.append(self.kernel.client._self_id)
-                    return user_id in owners
-            except: pass
-        return user_id == self.kernel.client._self_id
+        return AccountConfig.load(self.kernel.client._self_id).is_owner(user_id)
 
     async def start_bot(self):
         if not self.token: self.kernel.logger.error("Токен бота не указан"); return
@@ -305,9 +295,15 @@ class InlineBot:
 # === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (вне класса, чтобы избежать проблем с декораторами) ===
 
 async def _safe_invoke_handler(handler, event, data):
-    """Вызывает обработчик. Поддерживает (event) и (event, data) -> bool"""
-    try: return await handler(event, data)
-    except TypeError: return await handler(event)
+    """Dispatches ``handler(event, data)`` and returns whatever it returned.
+
+    Handlers MUST accept exactly ``(event, data)`` and return a truthy value
+    when they have handled the event (answered the inline query / callback)
+    so the router stops iterating. Returning ``False`` / ``None`` lets the
+    router try the next handler.
+    """
+    result = await handler(event, data)
+    return bool(result)
 
 async def _start_handler_impl(event, inline_bot):
     buttons = [

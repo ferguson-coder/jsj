@@ -1035,9 +1035,9 @@ def is_bot_running():
     """Проверяет, запущен ли бот, возвращает (True/False, PID)"""
     import subprocess
     try:
-        # Ищем процесс main.py с нашим session файлом
+        # Ищем процесс юзербота (python -m forelka)
         result = subprocess.run(
-            ['pgrep', '-f', 'python.*main.py'],
+            ['pgrep', '-f', r'python.*(-m\s+forelka|forelka/__main__\.py)'],
             capture_output=True,
             text=True
         )
@@ -1062,7 +1062,7 @@ def start_bot_cli():
         import subprocess
         # Запускаем бота в фоне
         proc = subprocess.Popen(
-            [sys.executable, 'main.py'],
+            [sys.executable, '-m', 'forelka'],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             start_new_session=True
@@ -1138,7 +1138,7 @@ def restart_bot_cli():
             
             # Запускаем заново
             proc = subprocess.Popen(
-                [sys.executable, 'main.py'],
+                [sys.executable, '-m', 'forelka'],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 start_new_session=True

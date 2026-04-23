@@ -426,15 +426,9 @@ async def edited_handler(event):
 
 async def setup_management_group(kernel):
     """Создаёт management группу без добавления бота (бот добавляется позже)."""
-    config_path = f"config-{kernel.client._self_id}.json"
-    config = {}
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                config = json.load(f)
-        except:
-            pass
-    if "management_group_id" in config:
+    from forelka.config import AccountConfig
+    cfg = AccountConfig.load(kernel.client._self_id)
+    if cfg.management_group_id is not None:
         print("Management группа уже существует.")
         return
 
@@ -461,10 +455,9 @@ async def setup_management_group(kernel):
             topic_ids[topic_name] = result.updates[0].id
             print(f"Топик '{topic_name}' создан.")
 
-        config["management_group_id"] = group_id
-        config["management_topics"] = topic_ids
-        with open(config_path, "w") as f:
-            json.dump(config, f, indent=4)
+        cfg.management_group_id = group_id
+        cfg.management_topics = topic_ids
+        cfg.save()
 
         print("Группа управления создана!")
         print("⚠️ Инлайн-бот будет добавлен после запуска...")
@@ -474,16 +467,9 @@ async def setup_management_group(kernel):
 
 async def add_bot_to_management_group(kernel):
     """Добавляет инлайн-бота в management группу (megagroup) после его запуска."""
-    config_path = f"config-{kernel.client._self_id}.json"
-    config = {}
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                config = json.load(f)
-        except:
-            pass
-    # Проверяем что группа уже создана
-    if "management_group_id" not in config:
+    from forelka.config import AccountConfig
+    cfg = AccountConfig.load(kernel.client._self_id)
+    if cfg.management_group_id is None:
         print("Management группа ещё не создана.")
         return
 
@@ -501,7 +487,7 @@ async def add_bot_to_management_group(kernel):
         print("Bot client не подключён (бот ещё не запущен).")
         return
 
-    group_id = config["management_group_id"]
+    group_id = cfg.management_group_id
 
     try:
         # Получаем entity бота
